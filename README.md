@@ -62,10 +62,10 @@ Total squared error ispc: 0.000000
 ```
 ### What you need to do:
 
-Implement GEMM on square matrices in ISPC.
+Implement GEMM on square matrices in ISPC.  (Your solution can assume all matrices are square with powers of two dimensions.)
 You can place your implementation in the function `gemm_ispc` in the file `gemm/gemm.ispc`.
 To use this implementation, please replace the naive solution we've include in `gemm/gemm.cpp`. 
-To perform this replacement, modify `main.cpp` by uncommenting `ispc::gemm_ispc(m, n, k, A2, B2, C2, alpha, beta);` and commenting `gemm(m, n, k, A2, B2, C2, alpha, beta);`
+To perform this replacement, modify `main.cpp` by uncommenting `ispc::gemm_ispc(m, n, k, A2, B2, C2, alpha, beta);` and commenting out `gemm(m, n, k, A2, B2, C2, alpha, beta);`
 
 ### Grading
 
@@ -75,7 +75,7 @@ __This extra credit will be graded on a case-by-case basis.__  There is no gradi
 
 Handin will be performed via [Gradescope](https://www.gradescope.com/). Please place the following files in your handin:
 
-1. Your implementation of gemm.ispc
+1. Your implementation of `gemm.ispc`
 2. A writeup with:
-  1. a graph of GFlops for MKL, your implementation, and the reference ISPC implementation with input argument N of 256, 512, 1024, 2048, and 4096 
-  2. a detailed description of the steps you performed in the optimzation process. In particular, please let us know which steps had the biggest benefit.
+  1. A graph of GFlops for MKL, your implementation, and the reference ISPC implementation with input argument N of 256, 512, 1024, 2048, and 4096 
+  2. A detailed description of the steps you performed in the optimzation process. In particular, please let us know which steps had the biggest benefit.
