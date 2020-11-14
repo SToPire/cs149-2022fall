@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
     int size = atoi(argv[1]);
     m = size, k = size, n = size;
     const uint64_t TOTAL_BYTES = (m*k + k*n + 2*m*n) * sizeof(double);
-    const uint64_t TOTAL_FLOPS = 2*m*n*k;
+    const uint64_t TOTAL_FLOPS = 2*m*((uint64_t) n*k);
 
     double alpha, beta;
     alpha = 1.0; beta = 1.0;
