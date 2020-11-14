@@ -27,7 +27,7 @@ To get started:
 
 Visit https://software.intel.com/en-us/mkl/choose-download/linux in your browser.
 
-Register. Under "Choose Product to Download", select Intel Math Kernel Library for Linux, 2019 Update 5. The full installer ("Full Package", 438MB) is more than adequate for our purposes.
+Register. Under "Choose Product to Download", select Intel Math Kernel Library for Linux, 2020 Update 4. The full installer ("Full Package", 438MB) is more than adequate for our purposes.
 
 Right-click on the "Full Package" button and select "Copy link address". On your myth machine, run `wget <paste the copied link address>` to download it directly on the myth machine. (Alternatively, you may download it to your local machine and use scp to transfer it to a myth machine.)
 
