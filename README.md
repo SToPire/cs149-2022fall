@@ -1,4 +1,4 @@
-# Extra Credit: See if you can implement matrix multiplication as fast as Intel's popular performance library #
+# Extra Credit: Implement Dense Matrix-Matrix Multiplication as Fast as You Can #
 
 **Due Fri Dec 3rd, 5:00pm PT (no late submission allowed)**
 
@@ -37,11 +37,12 @@ Enter the extracted directory and run the install script: `./install.sh`  (Accep
 
 Run this: `source intel/mkl/bin/mklvars.sh intel64` (To avoid having to do this every time you log in, you may wish to add this to your .bashrc)
 
-2. The assignment starter code is available on [github]. Please clone the Extra Credit starter code using:
+2. The assignment starter code is available on [github]. Please clone the extra credit starter code using:
 
     `git clone git@github.com:stanford-cs149/extracredit_gemm`
 
 3. Run the starter code. It accepts an argument `N` that specifies the sizes of all dimensions of the matrices. If N= You should see the following output by default, which documents the performance of three different implementations (Intel MKL library's performance, a staff reference implementation written in ISPC, and your solution).
+
 4. Note how much faster MKL is than the starter code we give you, which is just a simple triple for loop (the best MKL run is ~190 times faster than the best starter code run!!!). 
 
 ```
