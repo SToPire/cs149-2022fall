@@ -1,13 +1,12 @@
 # Extra Credit: See if you can implement matrix multiplication as fast as Intel's popular performance library #
 
-**Due Fri Nov 20, 5:00pm PT (no late days allowed)**
+**Due Fri Dec 3rd, 5:00pm PT (no late submission allowed)**
 
 If you complete this assignment, you will receive up to 10 bonus points on one of the regular programming assignments (PA1-PA4). 
-A second way to compute how this will impact your grade: you can add up to 2.5 points to your programming assignments average.
-
 
 ## Overview ##
-Implement General Matrix Multiply (GEMM) *on square matrices only*.
+
+In this assignment you will implement general dense matrix-matrix multiplication (GEMM).
 
 ## Environment Setup ##
 
@@ -19,7 +18,8 @@ values. For the curious, a complete specification for this CPU can be found at
 <https://ark.intel.com/products/97129/Intel-Core-i7-7700K-Processor-8M-Cache-up-to-4-50-GHz->.
 
 Note: For grading purposes, we expect you to report on the performance of code run on the Stanford myth machines, however
-for kicks, you may also want to run the programs in this assignment on your own machine. Feel free to include your findings from running code on other machines in your report as well, just be very clear what machine you were running on. 
+for kicks, you may also want to run the programs in this assignment on your own machine or on AWS machines if you have credits left over.
+Feel free to include your findings from running code on other machines in your report as well, just be very clear what machine you were running on. 
 
 To get started:
 
@@ -41,10 +41,11 @@ Run this: `source intel/mkl/bin/mklvars.sh intel64` (To avoid having to do this 
 
     `git clone git@github.com:stanford-cs149/extracredit_gemm`
 
-3. Run the starter code. It accepts an argument N that specifies the sizes of all dimensions of the matrices. If N= You should see the following output by default, which documents the performance of three different implementations (Intel MKL library's performance, a staff reference implementation written in ISPC, and your solution).  Note how much faster MKL is than the starter code we give you, which is just a simple triple for loop (the best MKL run is ~190 times faster than the best starter code run!!!).  
+3. Run the starter code. It accepts an argument `N` that specifies the sizes of all dimensions of the matrices. If N= You should see the following output by default, which documents the performance of three different implementations (Intel MKL library's performance, a staff reference implementation written in ISPC, and your solution).
+4. Note how much faster MKL is than the starter code we give you, which is just a simple triple for loop (the best MKL run is ~190 times faster than the best starter code run!!!). 
 
 ```
-(base) durst@myth55:~/starter/gemm$ ./gemm 1024
+(base) foo@myth55:~/starter/gemm$ ./gemm 1024
 Running Intel MKL... 16.10ms
 Running your ispc GEMM... 4174.45ms
 Running ref ispc GEMM... 89.08ms
@@ -62,9 +63,10 @@ Total squared error ispc: 0.000000
 ```
 ### What you need to do:
 
-Implement GEMM on square matrices in ISPC.  (Your solution can assume all matrices are square with powers of two dimensions.)
-You can place your implementation in the function `gemm_ispc` in the file `gemm/gemm.ispc`.
-To use this implementation, please replace the naive solution we've include in `gemm/gemm.cpp`. 
+Implement GEMM on square (NxN) matrices. __(Your solution can assume all matrices are square with powers of two dimensions.)__
+Place your implementation in the function `gemm_ispc` in the file `gemm/gemm.ispc`.
+To use this implementation, please replace the naive solution we've include in `gemm/gemm.cpp`.
+
 To perform this replacement, modify `main.cpp` by uncommenting `ispc::gemm_ispc(m, n, k, A2, B2, C2, alpha, beta);` and commenting out `gemm(m, n, k, A2, B2, C2, alpha, beta);`
 
 ### Grading
