@@ -6,12 +6,17 @@
 #include <iostream>
 
 #include "CycleTimer.h"
+
+#if MKL_INSTALLED
 #include "mkl.h"
+#endif
+
 #include "gemm_ispc.h"
 #include "ref_gemm_ispc.h"
 
 #define N_ITERS 3 // how many times to run implementaions for timing
 
+// implement: C = alpha * A x B + beta * C
 extern void gemm(int m, int n, int k, double *A, double *B, double *C, double alpha, double beta);
 
 static float toBW(uint64_t bytes, float sec) {
@@ -37,17 +42,23 @@ void printMat(const char * name, double *A, int m, int n){
 
 // Allocate and populate matrices
 int allocMatrices(int m, int n, int k, double **A, double **B, double **C){
+#if MKL_INSTALLED
     // mkl_malloc aligns allocated memory on 64-byte boundaries for performance
     *A = (double *)mkl_malloc( m*k*sizeof( double ), 64 );
     *B = (double *)mkl_malloc( k*n*sizeof( double ), 64 );
     *C = (double *)mkl_malloc( m*n*sizeof( double ), 64 );
     if (*A == NULL || *B == NULL || *C == NULL) {
-      // Could not allocate memory; abort
-      mkl_free(*A);
-      mkl_free(*B);
-      mkl_free(*C);
-      return 1;
+        // Could not allocate memory; abort
+        return 1;
     }
+#else
+    *A = (double *)malloc( m*k*sizeof( double ));
+    *B = (double *)malloc( k*n*sizeof( double ));
+    *C = (double *)malloc( m*n*sizeof( double ));
+    if (*A == NULL || *B == NULL || *C == NULL) {
+        return 1;
+    }
+#endif
     return 0;
 }
 
@@ -95,11 +106,16 @@ int main(int argc, char *argv[]) {
     //
     // Repeat N_ITERS times for robust timing.
     //
+#if MKL_INSTALLED
     double minMKL = 1e30;
+    double totalsqerr_ispc = 0; // keep track of total squared error over all iterations
+#endif
     double minGEMM = 1e30;
     double minISPC = 1e30;
     double totalsqerr_user = 0; // keep track of total squared error over all iterations
-    double totalsqerr_ispc = 0; // keep track of total squared error over all iterations
+
+    printf("Running each implementation %d times...\n", N_ITERS);
+    
     for (int i = 0; i < N_ITERS; ++i) {
         double startTime, endTime;
 
@@ -115,20 +131,22 @@ int main(int argc, char *argv[]) {
         memcpy(B3,B1,k*n*sizeof(double));
         memcpy(C3,C1,m*n*sizeof(double));
 
-        // Run the Intel MKL matrix multiply implementation. 
+        // Run the Intel MKL matrix multiply implementation.
+#if MKL_INSTALLED
         printf("Running Intel MKL... ");
         startTime = CycleTimer::currentSeconds();
         cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 
-                m, n, k, alpha, A1, k, B1, n, beta, C1, n);
+                    m, n, k, alpha, A1, k, B1, n, beta, C1, n);
         endTime = CycleTimer::currentSeconds();
         printf("%.2lfms\n", (endTime - startTime)*1000);
         minMKL = std::min(minMKL, endTime - startTime);
+#endif
 
         // Run your matrix multiply implementation. 
-        printf("Running your ispc GEMM... ");
+        printf("Running student GEMM... ");
         startTime = CycleTimer::currentSeconds();
-	//ispc::gemm_ispc(m, n, k, A2, B2, C2, alpha, beta);
-	gemm(m, n, k, A2, B2, C2, alpha, beta);
+        //ispc::gemm_ispc(m, n, k, A2, B2, C2, alpha, beta);
+        gemm(m, n, k, A2, B2, C2, alpha, beta);
         endTime = CycleTimer::currentSeconds();
         printf("%.2lfms\n", (endTime - startTime)*1000);
         minGEMM = std::min(minGEMM, endTime - startTime);
@@ -136,7 +154,7 @@ int main(int argc, char *argv[]) {
         // Run reference ISPC matrix multiply implementation. 
         printf("Running ref ispc GEMM... ");
         startTime = CycleTimer::currentSeconds();
-	ispc::gemm_ispc_ref(m, n, k, A3, B3, C3, alpha, beta);
+        ispc::gemm_ispc_ref(m, n, k, A3, B3, C3, alpha, beta);
         endTime = CycleTimer::currentSeconds();
         printf("%.2lfms\n", (endTime - startTime)*1000);
         minISPC = std::min(minISPC, endTime - startTime);
@@ -144,11 +162,17 @@ int main(int argc, char *argv[]) {
         // Compare output for correctness
         for (int i = 0; i < m; i++) {
             for ( int j = 0; j < n; j++ ) {
+#if MKL_INSTALLED
                 double mkl_output = C1[i*n+j];
                 double sol_output = C2[i*n+j];
                 double ispc_output = C3[i*n+j];
                 totalsqerr_user += (mkl_output - sol_output) * (mkl_output - sol_output);
                 totalsqerr_ispc += (mkl_output - ispc_output) * (mkl_output - ispc_output);
+#else
+                double sol_output = C2[i*n+j];
+                double ispc_output = C3[i*n+j];
+                totalsqerr_user += (ispc_output - sol_output) * (ispc_output - sol_output);
+#endif
             }
         }
     }
@@ -156,32 +180,44 @@ int main(int argc, char *argv[]) {
     //
     // Report timing statistics
     //
-    printf("[Intel MKL]:\t\t[%.3f] ms\t[%.3f] GB/s\t[%.2e] GFLOPS\n",
+#if MKL_INSTALLED
+    printf("[Intel MKL]:\t\t[%.3f] ms\t[%.3f] GB/s\t[%.2f] GFLOPS\n",
            minMKL * 1000,
            toBW(TOTAL_BYTES, minMKL),
            toGFLOPS(TOTAL_FLOPS, minMKL));
+#endif
 
-
-    printf("[Your ISPC GEMM]:\t\t[%.3f] ms\t[%.3f] GB/s\t[%.2e] GFLOPS\n",
+    printf("[Student GEMM]:\t\t[%.3f] ms\t[%.3f] GB/s\t[%.2f] GFLOPS\n",
            minGEMM * 1000,
            toBW(TOTAL_BYTES, minGEMM),
            toGFLOPS(TOTAL_FLOPS, minGEMM));
 
-    printf("[Ref ISPC GEMM]:\t\t[%.3f] ms\t[%.3f] GB/s\t[%.2e] GFLOPS\n",
+    printf("[Ref ISPC GEMM]:\t[%.3f] ms\t[%.3f] GB/s\t[%.2f] GFLOPS\n",
            minISPC * 1000,
            toBW(TOTAL_BYTES, minISPC),
            toGFLOPS(TOTAL_FLOPS, minISPC));
 
-    printf("Total squared error user: %lf\n", totalsqerr_user);
-    printf("Total squared error ispc: %lf\n", totalsqerr_ispc);
+    printf("Total squared error student sol: %lf\n", totalsqerr_user);
+#if MKL_INSTALLED
+    printf("Total squared error ref ispc: %lf\n", totalsqerr_ispc);
+#endif
 
     // Deallocate matrices
+#if MKL_INSTALLED
     mkl_free(A1);
     mkl_free(B1);
     mkl_free(C1);
     mkl_free(A2);
     mkl_free(B2);
     mkl_free(C2);
+#else
+    free(A1);
+    free(B1);
+    free(C1);
+    free(A2);
+    free(B2);
+    free(C2);
+#endif
 
     return 0;
 }

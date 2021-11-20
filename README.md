@@ -2,11 +2,11 @@
 
 **Due Fri Dec 3rd, 5:00pm PT (no late submission allowed)**
 
-If you complete this assignment, you will receive up to 10 bonus points on one of the regular programming assignments (PA1-PA4). 
+If you complete this assignment, you will __receive up__ to 10 bonus points on one of the regular programming assignments (PA1-PA4).   
 
 ## Overview ##
 
-In this assignment you will implement general dense matrix-matrix multiplication (GEMM).
+In this assignment you will implement general dense matrix-matrix multiplication (GEMM).  GEMM is a critical computational primitives used in many applications: ranging from linear algebra, solving systems of equations, scientific computing, and most recently in [deep learning](https://petewarden.com/2015/04/20/why-gemm-is-at-the-heart-of-deep-learning/).  
 
 ## Environment Setup ##
 
@@ -23,25 +23,36 @@ Feel free to include your findings from running code on other machines in your r
 
 To get started:
 
-1. The Intel Math Kernel Library (MKL) is a highly optimized linear algebra library which we'll be testing your matrix-multiply routine against. It may be easily installed on the myth machines through the following steps:  
+1. The Intel Math Kernel Library (MKL) is a highly optimized linear algebra library which you'll testing your matrix-multiply routine against. You can install it on the myth machines using the following steps.  __Note: that if you have problems installing MKL you can skip this step and still do the assignment, you just won't be able to compare your performance to a professional implementation. __
 
-Visit https://software.intel.com/en-us/mkl/choose-download/linux in your browser.
+You can install MKL using the following commands:
 
-Register. Under "Choose Product to Download", select Intel Math Kernel Library for Linux, 2020 Update 4. The full installer ("Full Package", 438MB) is more than adequate for our purposes.
+```bash
+wget https://registrationcenter-download.intel.com/akdlm/irc_nas/18236/l_BaseKit_p_2021.4.0.3422.sh
 
-Right-click on the "Full Package" button and select "Copy link address". On your myth machine, run `wget <paste the copied link address>` to download it directly on the myth machine. (Alternatively, you may download it to your local machine and use scp to transfer it to a myth machine.)
+bash l_BaseKit_p_2021.4.0.3422.sh
+```
 
-Untar the downloaded file: `tar xzvf l_mkl_2020.4.304.tgz`  (You may need to change the version number in the filename accordingly.)
+You'll likely want to deselect everything except for the Intel Math Kernel Library, and your final installation should take up 7.7GB of space on Myth.
 
-Enter the extracted directory and run the install script: `./install.sh`  (Accept the EULA, accept the default installation settings, and wait a few minutes for installation to complete.)
+Or, for a one-line installation once you've downloaded you can use this command. Note that you will accept the EULA by running this command.
+```
+bash l_BaseKit_p_2021.4.0.3422.sh -a --action install --components intel.oneapi.lin.mkl.devel -s --eula accept
+```
 
-Run this: `source intel/mkl/bin/mklvars.sh intel64` (To avoid having to do this every time you log in, you may wish to add this to your .bashrc)
+If that fails, you can manually download MKL as part of the Intel oneAPI Base Toolkit here: https://www.intel.com/content/www/us/en/developer/tools/oneapi/base-toolkit-download.html
+
+Once you've installed MKL successfully, you'll want to define the `MKLROOT` environment variable to point it at your MKL installation. Once you've done so, the Makefile should detect it and automatically include MKL in any further builds. Note that you will need to `make clean` first. If you've installed MKL to the default directory, you can use the following command:
+
+```bash
+export MKLROOT=${HOME}/intel/oneapi/mkl/latest/
+```
 
 2. The assignment starter code is available on [github]. Please clone the extra credit starter code using:
 
     `git clone git@github.com:stanford-cs149/extracredit_gemm`
 
-3. Run the starter code. It accepts an argument `N` that specifies the sizes of all dimensions of the matrices. If N= You should see the following output by default, which documents the performance of three different implementations (Intel MKL library's performance, a staff reference implementation written in ISPC, and your solution).
+3. Run the starter code in the `/gemm` directory using the command `./gemm N`.  The parameter `N` specifies the sizes of all dimensions of the matrices.  In other words, if N=256, then the code will create 256x256 matrices A, B, and C, and compute `C = alpha * A * B + beta C` (where alpha and beta are scalars). If you have MKL installed, you should see the following output, which documents the performance of three different implementations (Intel MKL library's performance, a staff reference implementation written in ISPC, and your solution).
 
 4. Note how much faster MKL is than the starter code we give you, which is just a simple triple for loop (the best MKL run is ~190 times faster than the best starter code run!!!). 
 
@@ -64,15 +75,19 @@ Total squared error ispc: 0.000000
 ```
 ### What you need to do:
 
-Implement GEMM on square (NxN) matrices. __(Your solution can assume all matrices are square with powers of two dimensions.)__
-Place your implementation in the function `gemm_ispc` in the file `gemm/gemm.ispc`.
-To use this implementation, please replace the naive solution we've include in `gemm/gemm.cpp`.
+Implement GEMM on square (NxN) matrices. __(Your solution can assume all matrices are square with power-of-two dimensions.)__. You can implement your solution in plain C (perhaps with vector instrinsics), or use ISPC.  
 
-To perform this replacement, modify `main.cpp` by uncommenting `ispc::gemm_ispc(m, n, k, A2, B2, C2, alpha, beta);` and commenting out `gemm(m, n, k, A2, B2, C2, alpha, beta);`
+* If you want to implement the solution completing from scratch, place your solution in `gemm/gemm.cpp`.  You'll find a naive solution already given to you.
+* If you want to implement your solution in ISPC, please place it in `gemm/gemm.ispc`.  __You'll need to modify `main.cpp` to call `ispc::gemm_ispc(m, n, k, A2, B2, C2, alpha, beta);`__ instead of `gemm(m, n, k, A2, B2, C2, alpha, beta);` so that the harness runs your ISPC code instead of the C solution.
+
+That's it!  It's an "going further" extra credit, so you are on your own!  However we do first recommend ["blocking" (aka tiling)](https://cs149.stanford.edu/fall21/lecture/perfopt2/slide_54) the loops so that you dramatically improve the cache behavior of the algorithm for larger N.  Specifically, how can you decompose a large matrix multiplication of NxN matrices, written using 3 for loops, into a sequence of smaller KxK matrix multiplications where KxK submatrices of A, B, and C are sized to fit in cache?  Once you get your tiling scheme working, then I'd recommend considering multi-core and SIMD parallelization.
+
+For a better understanding of blocking, I recommend you [take a look at this article](https://csapp.cs.cmu.edu/public/waside/waside-blocking.pdf).
+
 
 ### Grading
 
-__This extra credit will be graded on a case-by-case basis.__  There is no grading harness, however we are looking for documentation of a serious effort to obtain improved performance using ideas like creating parallel work for all cores, blocking to fit in cache (and perhaps even registers), SIMD vector processing (e.g. using ISPC). To give you a ballpark estimate of expectations, we are looking for student work to be approaching that of the reference ISPC implementation to gain this extra credit (although that reference ISPC implementation is pretty good, so don't necessarily expect to beat it to get points).
+__This extra credit will be graded on a case-by-case basis.__  There is no grading harness, however we are looking for documentation of a serious effort to obtain improved performance using ideas like creating parallel work for all cores, blocking to fit in cache (and perhaps even registers), SIMD vector processing (e.g. using ISPC). To give you a ballpark estimate of expectations, we are looking for student work to be approaching that of the reference ISPC implementation to gain this extra credit (although that reference ISPC implementation is pretty good, so don't necessarily expect to beat it to get points).  Although it's on a complete Recently your instructor was impressed by this 
 
 ## Hand-in Instructions ##
 
