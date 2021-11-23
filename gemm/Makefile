@@ -3,7 +3,7 @@ CXXFLAGS=-I../common -Iobjs/ -O3 -Wall
 LDLIBS=-lm $(TASKSYS_LIB)
 ISPC=ispc
 # note: requires AVX2
-ISPCFLAGS=-O3 --target=avx2-i32x8 --arch=x86-64
+ISPCFLAGS=-O3 --target=avx2-i32x8 --arch=x86-64 --pie
 
 APP_NAME=gemm
 OBJDIR=objs
