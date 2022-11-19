@@ -1,0 +1,5 @@
+.cache
+*.o
+compile_commands.json
+mandelbrot
+*.ppm
