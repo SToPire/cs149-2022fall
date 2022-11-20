@@ -35,6 +35,15 @@ int main() {
         
         // starter code populates array with random input values
         values[i] = .001f + 2.998f * static_cast<float>(rand()) / RAND_MAX;
+
+        // best case: all values are same, with a high interation count.
+        // values[i] = 2.99999;
+
+        // worst case 1: serial exec is already fast
+        // values[i] = 1.0f;
+
+        // worst case 2: a slow 2.99999 become the bottle neck
+        // values[i] = i%8 ? 1 : 2.99999;
     }
 
     // generate a gold version to check results

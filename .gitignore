@@ -2,6 +2,10 @@
 *.o
 compile_commands.json
 *.ppm
+objs/
 
 mandelbrot
 myexp
+mandelbrot_ispc
+sqrt
+saxpy
