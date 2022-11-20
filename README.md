@@ -1,6 +1,6 @@
 # Extra Credit: Implement Dense Matrix-Matrix Multiplication as Fast as You Can #
 
-**Due Fri Dec 3rd, 5:00pm PT (no late submission allowed)**
+**Due Fri Dec 9th, 11:59 PT (no late submission allowed)**
 
 If you complete this assignment, you will __receive up__ to 10 bonus points on one of the regular programming assignments (PA1-PA4). Note that programming assignment averages are not capped, so this is essentially "extra credit" on the course.  
 
