@@ -25,7 +25,7 @@ To get started:
 
 1. The assignment starter code is available on [github]. Please clone the extra credit starter code using:
 
-    `git clone git@github.com:stanford-cs149/extracredit_gemm`
+    `git clone git@github.com:stanford-cs149/extracredit_gemm.git`
 
 2. __Note: You can skip this step and still do the assignment, you just won't be able to compare your performance to a professional implementation.__ The Intel Math Kernel Library (MKL) is a highly optimized linear algebra library which you can test your matrix-multiply routine against.  Approaching the performance of this library with a solutions would be an extremely strong effort. You can install MKL on the myth machines using the following steps.  
 
