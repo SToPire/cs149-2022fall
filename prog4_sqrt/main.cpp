@@ -9,6 +9,8 @@
 using namespace ispc;
 
 extern void sqrtSerial(int N, float startGuess, float* values, float* output);
+extern void sqrtAVX2(int N, float initialGuess, float* values, float* output);
+extern void sqrtAVXNative(int N, float initialGuess, float values[], float output[]);
 
 static void verifyResult(int N, float* result, float* gold) {
     for (int i=0; i<N; i++) {
@@ -101,8 +103,42 @@ int main() {
 
     verifyResult(N, output, gold);
 
+    // Clear out the buffer
+    for (unsigned int i = 0; i < N; ++i)
+        output[i] = 0;
+
+    double minAVX = 1e30;
+    for (int i = 0; i < 3; ++i) {
+        double startTime = CycleTimer::currentSeconds();
+        sqrtAVX2(N, initialGuess, values, output);
+        double endTime = CycleTimer::currentSeconds();
+        minAVX = std::min(minAVX, endTime - startTime);
+    }
+
+    printf("[sqrt AVX]:\t[%.3f] ms\n", minAVX * 1000);
+
+    verifyResult(N, output, gold);
+
+    // Clear out the buffer
+    for (unsigned int i = 0; i < N; ++i)
+        output[i] = 0;
+
+    double minAVXNative = 1e30;
+    for (int i = 0; i < 3; ++i) {
+        double startTime = CycleTimer::currentSeconds();
+        sqrtAVXNative(N, initialGuess, values, output);
+        double endTime = CycleTimer::currentSeconds();
+        minAVXNative = std::min(minAVXNative, endTime - startTime);
+    }
+
+    printf("[sqrt AVX native]:\t[%.3f] ms\n", minAVXNative * 1000);
+
+    verifyResult(N, output, gold);
+
     printf("\t\t\t\t(%.2fx speedup from ISPC)\n", minSerial/minISPC);
     printf("\t\t\t\t(%.2fx speedup from task ISPC)\n", minSerial/minTaskISPC);
+    printf("\t\t\t\t(%.2fx speedup from AVX)\n", minSerial/minAVX);
+    printf("\t\t\t\t(%.2fx speedup from AVX native)\n", minSerial/minAVXNative);
 
     delete [] values;
     delete [] output;
