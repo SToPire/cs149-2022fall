@@ -43,8 +43,7 @@ AUTHORS = ["STUDENT", "REFERENCE"]
 LIST_OF_IMPLEMENTATIONS = [
     "[Serial]",
     "[Parallel + Always Spawn]",
-    "[Parallel + Thread Pool + Spin + Mutex]",
-    "[Parallel + Thread Pool + Spin + Atomic]",
+    "[Parallel + Thread Pool + Spin]",
     "[Parallel + Thread Pool + Sleep]",
 ]
 
@@ -177,11 +176,6 @@ if __name__ == '__main__':
                     all_runtimes[key] += runtimes[key]
         for key in all_runtimes:
             all_runtimes[key] = min(all_runtimes[key])
-        
-        refkey = 'REFERENCE [Parallel + Thread Pool + Spin]'
-        all_runtimes['REFERENCE [Parallel + Thread Pool + Spin + Atomic]'] = all_runtimes[refkey]
-        all_runtimes['REFERENCE [Parallel + Thread Pool + Spin + Mutex]'] = all_runtimes[refkey]
-        all_runtimes.pop(refkey)
         pretty_print_with_comparison(test_name, all_runtimes, PERF_THRESHOLD, impl_perf_ok)
         
         runtimes_of_test[test_name] = all_runtimes

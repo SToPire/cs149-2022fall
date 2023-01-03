@@ -100,26 +100,26 @@ void TaskSystemParallelSpawn::sync() {
 
 /*
  * ================================================================
- * Parallel Thread Pool Spinning Task System Implementation (Mutex)
+ * Parallel Thread Pool Spinning Task System Implementation
  * ================================================================
  */
 
-const char* TaskSystemParallelThreadPoolSpinningMutex::name() {
-    return "Parallel + Thread Pool + Spin + Mutex";
+const char* TaskSystemParallelThreadPoolSpinning::name() {
+    return "Parallel + Thread Pool + Spin";
 }
 
-TaskSystemParallelThreadPoolSpinningMutex::
-    TaskSystemParallelThreadPoolSpinningMutex(int num_threads)
+TaskSystemParallelThreadPoolSpinning::
+    TaskSystemParallelThreadPoolSpinning(int num_threads)
     : ITaskSystem(num_threads), _num_threads(num_threads) {
     _threads = new std::thread[_num_threads];
     for (int i = 0; i < _num_threads; i++) {
         _threads[i] = std::thread(
-            &TaskSystemParallelThreadPoolSpinningMutex::thread_task, this);
+            &TaskSystemParallelThreadPoolSpinning::thread_task, this);
     }
 }
 
-TaskSystemParallelThreadPoolSpinningMutex::
-    ~TaskSystemParallelThreadPoolSpinningMutex() {
+TaskSystemParallelThreadPoolSpinning::
+    ~TaskSystemParallelThreadPoolSpinning() {
     _endThreads = true;
     for (int i = 0; i < _num_threads; i++) {
         _threads[i].join();
@@ -127,7 +127,7 @@ TaskSystemParallelThreadPoolSpinningMutex::
     delete[] _threads;
 }
 
-void TaskSystemParallelThreadPoolSpinningMutex::thread_task() {
+void TaskSystemParallelThreadPoolSpinning::thread_task() {
     int index;
     while (!_endThreads) {
         _mutex.lock();
@@ -152,7 +152,7 @@ void TaskSystemParallelThreadPoolSpinningMutex::thread_task() {
     }
 }
 
-void TaskSystemParallelThreadPoolSpinningMutex::run(IRunnable *runnable,
+void TaskSystemParallelThreadPoolSpinning::run(IRunnable *runnable,
                                                     int num_total_tasks) {
     bool doing = true;
 
@@ -177,81 +177,12 @@ void TaskSystemParallelThreadPoolSpinningMutex::run(IRunnable *runnable,
     _haveTasks = false;
 }
 
-TaskID TaskSystemParallelThreadPoolSpinningMutex::runAsyncWithDeps(
+TaskID TaskSystemParallelThreadPoolSpinning::runAsyncWithDeps(
     IRunnable *runnable, int num_total_tasks, const std::vector<TaskID> &deps) {
     return 0;
 }
 
-void TaskSystemParallelThreadPoolSpinningMutex::sync() {
-    return;
-}
-
-/*
- * ================================================================
- * Parallel Thread Pool Spinning Task System Implementation (Atomic)
- * ================================================================
- */
-
-const char* TaskSystemParallelThreadPoolSpinningAtomic::name() {
-    return "Parallel + Thread Pool + Spin + Atomic";
-}
-
-TaskSystemParallelThreadPoolSpinningAtomic::
-    TaskSystemParallelThreadPoolSpinningAtomic(int num_threads)
-    : ITaskSystem(num_threads), _num_threads(num_threads) {
-    _threads = new std::thread[_num_threads];
-    for (int i = 0; i < _num_threads; i++) {
-        _threads[i] = std::thread(
-            &TaskSystemParallelThreadPoolSpinningAtomic::thread_task, this);
-    }
-}
-
-TaskSystemParallelThreadPoolSpinningAtomic::
-    ~TaskSystemParallelThreadPoolSpinningAtomic() {
-    _endThreads = true;
-    for (int i = 0; i < _num_threads; i++) {
-        _threads[i].join();
-    }
-    delete[] _threads;
-}
-
-void TaskSystemParallelThreadPoolSpinningAtomic::thread_task() {
-    int index;
-    while (!_endThreads) {
-        if (!_haveTasks) {
-            continue;
-        }
-
-        index = _doing_cnt.fetch_add(1);
-        /* Buggy! What if _ntask is modified in run()? */
-        if (index >= _ntask) {
-            continue;
-        }
-        _runnable->runTask(index, _ntask);
-
-        _done_cnt.fetch_add(1);
-    }
-}
-
-void TaskSystemParallelThreadPoolSpinningAtomic::run(IRunnable *runnable,
-                                                     int num_total_tasks) {
-    _ntask = num_total_tasks;
-    _runnable = runnable;
-
-    _doing_cnt = _done_cnt = 0;
-
-    _haveTasks = true;
-    while (_done_cnt != _ntask)
-        ;
-    _haveTasks = false;
-}
-
-TaskID TaskSystemParallelThreadPoolSpinningAtomic::runAsyncWithDeps(
-    IRunnable *runnable, int num_total_tasks, const std::vector<TaskID> &deps) {
-    return 0;
-}
-
-void TaskSystemParallelThreadPoolSpinningAtomic::sync() {
+void TaskSystemParallelThreadPoolSpinning::sync() {
     return;
 }
 

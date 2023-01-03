@@ -26,8 +26,7 @@ void usage(const char* progname, std::string *testnames, int num_tests) {
 enum TaskSystemType {
     SERIAL,
     PARALLEL_SPAWN,
-    PARALLEL_THREAD_POOL_SPINNING_MUTEX,
-    PARALLEL_THREAD_POOL_SPINNING_ATOMIC,
+    PARALLEL_THREAD_POOL_SPINNING,
     PARALLEL_THREAD_POOL_SLEEPING,
     N_TASKSYS_IMPLS, // This must be in the last position.
 };
@@ -39,10 +38,8 @@ ITaskSystem *selectTaskSystemRefImpl(int num_threads, TaskSystemType type) {
         return new TaskSystemSerial(num_threads);
     } else if (type == PARALLEL_SPAWN) {
         return new TaskSystemParallelSpawn(num_threads);
-    } else if (type == PARALLEL_THREAD_POOL_SPINNING_MUTEX) {
-        return new TaskSystemParallelThreadPoolSpinningMutex(num_threads);
-    } else if (type == PARALLEL_THREAD_POOL_SPINNING_ATOMIC) {
-        return new TaskSystemParallelThreadPoolSpinningAtomic(num_threads);
+    } else if (type == PARALLEL_THREAD_POOL_SPINNING) {
+        return new TaskSystemParallelThreadPoolSpinning(num_threads);
     } else if (type == PARALLEL_THREAD_POOL_SLEEPING) {
         return new TaskSystemParallelThreadPoolSleeping(num_threads);
     } else {
