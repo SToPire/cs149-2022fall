@@ -99,7 +99,7 @@ class TaskSystemParallelThreadPoolSleeping: public ITaskSystem {
         int _doing_cnt{}, _done_cnt{};
 
         std::mutex _mutex;
-        std::condition_variable _cv;
+        std::condition_variable _worker_cv, _main_cv;
 };
 
 #endif

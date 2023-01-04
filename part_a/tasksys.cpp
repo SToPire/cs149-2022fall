@@ -3,6 +3,7 @@
 #include <iostream>
 #include <mutex>
 #include <thread>
+#include <cassert>
 
 IRunnable::~IRunnable() {}
 
@@ -207,8 +208,13 @@ TaskSystemParallelThreadPoolSleeping::TaskSystemParallelThreadPoolSleeping(
 }
 
 TaskSystemParallelThreadPoolSleeping::~TaskSystemParallelThreadPoolSleeping() {
+    _mutex.lock();
     _endThreads = true;
-    _cv.notify_all();
+    /* We must hold the lock to protect the critical section when signaling all
+     * workers, otherwise, worker may receive the signal before it goes to
+     * sleep, and it will sleep forever. */
+    _worker_cv.notify_all();
+    _mutex.unlock();
     for (int i = 0; i < _num_threads; i++) {
         _threads[i].join();
     }
@@ -216,12 +222,11 @@ TaskSystemParallelThreadPoolSleeping::~TaskSystemParallelThreadPoolSleeping() {
 }
 
 void TaskSystemParallelThreadPoolSleeping::thread_task() {
+    std::unique_lock<std::mutex> lck(_mutex);
     while (true) {
-        std::unique_lock<std::mutex> lck(_mutex);
-
         int index = _doing_cnt;
         while (index >= _ntask) {
-            _cv.wait(lck);
+            _worker_cv.wait(lck);
             if (_endThreads) return;
             index = _doing_cnt;
         }
@@ -234,9 +239,8 @@ void TaskSystemParallelThreadPoolSleeping::thread_task() {
         lck.lock();
         if (++_done_cnt == _ntask) {
             /* wake up main thread */
-            _cv.notify_all();
+            _main_cv.notify_one();
         }
-        lck.unlock();
     }
 }
 
@@ -247,10 +251,11 @@ void TaskSystemParallelThreadPoolSleeping::run(IRunnable* runnable, int num_tota
     _doing_cnt = _done_cnt = 0;
 
     /* wake up workers */
-    _cv.notify_all();
-    while (_done_cnt != _ntask) {
-        _cv.wait(lck);
-    }
+    _worker_cv.notify_all();
+    /* put main thread into sleep*/
+    _main_cv.wait(lck);
+    /* assertion failure indicates a bug */
+    assert(_done_cnt == _ntask);
 }
 
 TaskID TaskSystemParallelThreadPoolSleeping::runAsyncWithDeps(IRunnable* runnable, int num_total_tasks,
