@@ -223,7 +223,7 @@ TaskSystemParallelThreadPoolSleeping::~TaskSystemParallelThreadPoolSleeping() {
 
 void TaskSystemParallelThreadPoolSleeping::thread_task() {
     std::unique_lock<std::mutex> lck(_mutex);
-    while (true) {
+    while (!_endThreads) {
         int index = _doing_cnt;
         while (index >= _ntask) {
             _worker_cv.wait(lck);

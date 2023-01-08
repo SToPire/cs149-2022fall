@@ -1,4 +1,5 @@
 #include "tasksys.h"
+#include <iostream>
 
 
 IRunnable::~IRunnable() {}
@@ -126,58 +127,110 @@ const char* TaskSystemParallelThreadPoolSleeping::name() {
     return "Parallel + Thread Pool + Sleep";
 }
 
-TaskSystemParallelThreadPoolSleeping::TaskSystemParallelThreadPoolSleeping(int num_threads): ITaskSystem(num_threads) {
-    //
-    // TODO: CS149 student implementations may decide to perform setup
-    // operations (such as thread pool construction) here.
-    // Implementations are free to add new class member variables
-    // (requiring changes to tasksys.h).
-    //
+TaskSystemParallelThreadPoolSleeping::TaskSystemParallelThreadPoolSleeping(
+    int num_threads)
+    : ITaskSystem(num_threads), _num_threads(num_threads) {
+    _threads = new std::thread[num_threads];
+    for (int i = 0; i < _num_threads; i++) {
+        _threads[i] = std::thread(
+            &TaskSystemParallelThreadPoolSleeping::thread_task, this);
+    }
 }
 
 TaskSystemParallelThreadPoolSleeping::~TaskSystemParallelThreadPoolSleeping() {
-    //
-    // TODO: CS149 student implementations may decide to perform cleanup
-    // operations (such as thread pool shutdown construction) here.
-    // Implementations are free to add new class member variables
-    // (requiring changes to tasksys.h).
-    //
+    std::unique_lock<std::mutex> lck(_mutex);
+    _endThreads = true;
+    _worker_cv.notify_all();
+    lck.unlock();
+    for (int i = 0; i < _num_threads; i++) {
+        _threads[i].join();
+    }
+    delete[] _threads;
+}
+
+void TaskSystemParallelThreadPoolSleeping::thread_task() {
+    std::unique_lock<std::mutex> lck(_mutex);
+    int index;
+    std::list<TaskSystemParallelThreadPoolSleeping::BulkMeta>::iterator cur;
+    cur = _runnable_bulks.begin();
+    while (!_endThreads) {
+        /* Find a runnable bulk, if we've iterated the whole list, go sleep. */
+        while (cur == _runnable_bulks.end()) {
+            _worker_cv.wait(lck);
+            if (_endThreads) return;
+            /* After woken up, re-iterate the list from the beginning. */
+            cur = _runnable_bulks.begin();
+        }
+        index = cur->_doing_cnt;
+
+        /* Invalid _doing_cnt means the bulk is being/has been finished, so
+         * iterate the _runnable_bulks list and try to find the next one. */
+        while (index >= cur->_ntask) {
+            cur++;
+            while (cur == _runnable_bulks.end()) {
+                _worker_cv.wait(lck);
+                if (_endThreads) return;
+                cur = _runnable_bulks.begin();
+            }
+            index = cur->_doing_cnt;
+        }
+        /* We've got a valid task index in this bulk. Run it! */
+        cur->_doing_cnt++;
+        lck.unlock();
+
+        cur->_runnable->runTask(index, cur->_ntask);
+
+        lck.lock();
+        /* We've done the last task in this bulk. Mark the bulk as finished,
+         * then try to find if another bulk is runnable. */
+        if (++cur->_done_cnt == cur->_ntask) {
+            _finished_bulks.insert(cur->_bulk_id);
+            cur = _runnable_bulks.erase(cur);
+            /* wake up main thread */
+            _main_cv.notify_one();
+
+            _findRunnableBulk();
+        }
+    }
+}
+
+void TaskSystemParallelThreadPoolSleeping::_findRunnableBulk() {
+    bool isRunnable = true;
+    for (auto it = _pending_bulks.begin(); it != _pending_bulks.end();) {
+        for (auto &e : it->_deps) {
+            if (_finished_bulks.find(e) == _finished_bulks.end()) {
+                isRunnable = false;
+            }
+        }
+        if (isRunnable) {
+            _runnable_bulks.push_back(*it);
+            it = _pending_bulks.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    _worker_cv.notify_all();
 }
 
 void TaskSystemParallelThreadPoolSleeping::run(IRunnable* runnable, int num_total_tasks) {
-
-
-    //
-    // TODO: CS149 students will modify the implementation of this
-    // method in Parts A and B.  The implementation provided below runs all
-    // tasks sequentially on the calling thread.
-    //
-
-    for (int i = 0; i < num_total_tasks; i++) {
-        runnable->runTask(i, num_total_tasks);
-    }
+    runAsyncWithDeps(runnable, num_total_tasks, {});
+    sync();
 }
 
 TaskID TaskSystemParallelThreadPoolSleeping::runAsyncWithDeps(IRunnable* runnable, int num_total_tasks,
                                                     const std::vector<TaskID>& deps) {
-
-
-    //
-    // TODO: CS149 students will implement this method in Part B.
-    //
-
-    for (int i = 0; i < num_total_tasks; i++) {
-        runnable->runTask(i, num_total_tasks);
-    }
-
-    return 0;
+    /* We must take the lock for list insertion and `_findRunnableBulk()`. */
+    std::unique_lock<std::mutex> lck(_mutex);
+    int bulk_id = _bulk_id++;
+    _pending_bulks.push_back({runnable, num_total_tasks, deps, 0, 0, bulk_id});
+    _findRunnableBulk();
+    return bulk_id;
 }
 
 void TaskSystemParallelThreadPoolSleeping::sync() {
-
-    //
-    // TODO: CS149 students will modify the implementation of this method in Part B.
-    //
-
-    return;
+    std::unique_lock<std::mutex> lck(_mutex);
+    /* Wait for previous bulks to finish. */
+    while (!_runnable_bulks.empty() || !_pending_bulks.empty()) {
+        _main_cv.wait(lck);
+    }
 }

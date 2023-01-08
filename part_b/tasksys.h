@@ -2,6 +2,13 @@
 #define _TASKSYS_H
 
 #include "itasksys.h"
+#include <atomic>
+#include <condition_variable>
+#include <mutex>
+#include <set>
+#include <thread>
+#include <vector>
+#include <list>
 
 /*
  * TaskSystemSerial: This class is the student's implementation of a
@@ -65,9 +72,40 @@ class TaskSystemParallelThreadPoolSleeping: public ITaskSystem {
         ~TaskSystemParallelThreadPoolSleeping();
         const char* name();
         void run(IRunnable* runnable, int num_total_tasks);
+        void thread_task();
         TaskID runAsyncWithDeps(IRunnable* runnable, int num_total_tasks,
                                 const std::vector<TaskID>& deps);
         void sync();
+    private:
+        /*  
+            Bulk: A bunch of tasks identfified by `TaskID` variable.
+            Task: A single execution of `runnable`. 
+        */
+        struct BulkMeta {
+            IRunnable* _runnable;
+            int _ntask;
+            std::vector<TaskID> _deps;
+
+            int _doing_cnt;
+            int _done_cnt;
+
+            int _bulk_id;
+        };
+
+        std::thread *_threads;
+        int _num_threads;
+        std::list<BulkMeta> _runnable_bulks, _pending_bulks;
+        std::set<int> _finished_bulks;
+        int _bulk_id{};
+
+        bool _endThreads{};
+        std::mutex _mutex;
+        std::condition_variable _worker_cv, _main_cv;
+
+        /* Check if there are any runnable bulks in _pending_bulks. If any,
+         * erase them and insert them into _runnable_bulks. Caller must take the
+         * mutex.*/
+        void _findRunnableBulk();
 };
 
 #endif
