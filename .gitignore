@@ -1,0 +1,8 @@
+.cache
+*.json
+*.o
+*.log
+.clang-format
+
+cudaScan
+cudaSaxpy
