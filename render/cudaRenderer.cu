@@ -633,13 +633,45 @@ CudaRenderer::advanceAnimation() {
     cudaDeviceSynchronize();
 }
 
+__global__ void kernelRenderPixels() {
+    int pixelX = blockIdx.x * blockDim.x + threadIdx.x;
+    int pixelY = blockIdx.y * blockDim.y + threadIdx.y;
+
+    short imageWidth = cuConstRendererParams.imageWidth;
+    short imageHeight = cuConstRendererParams.imageHeight;
+    float invWidth = 1.f / imageWidth;
+    float invHeight = 1.f / imageHeight;
+
+    if (pixelX > imageWidth || pixelY > imageHeight) {
+        return;
+    }
+
+    float2 pixelCenterNorm =
+        make_float2(invWidth * (static_cast<float>(pixelX) + 0.5f),
+                    invHeight * (static_cast<float>(pixelY) + 0.5f));
+    float4 *imgPtr =
+        (float4 *)(&cuConstRendererParams
+                        .imageData[4 * (pixelY * imageWidth + pixelX)]);
+
+    for (int i = 0; i < cuConstRendererParams.numCircles; i++) {
+        float3 p = *(float3 *)(&cuConstRendererParams.position[i * 3]);
+        shadePixel(i, pixelCenterNorm, p, imgPtr);
+    }
+}
+
 void
 CudaRenderer::render() {
 
     // 256 threads per block is a healthy number
-    dim3 blockDim(256, 1);
-    dim3 gridDim((numCircles + blockDim.x - 1) / blockDim.x);
+    // dim3 blockDim(256, 1);
+    // dim3 gridDim((numCircles + blockDim.x - 1) / blockDim.x);
 
-    kernelRenderCircles<<<gridDim, blockDim>>>();
-    cudaDeviceSynchronize();
+    // kernelRenderCircles<<<gridDim, blockDim>>>();
+    // cudaDeviceSynchronize();
+
+    dim3 blockDim(16, 16);
+    dim3 gridDim((image->width + blockDim.x - 1) / blockDim.x,
+                 (image->height + blockDim.y - 1) / blockDim.y);
+
+    kernelRenderPixels<<<gridDim, blockDim>>>();
 }

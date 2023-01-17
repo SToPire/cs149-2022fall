@@ -2,7 +2,9 @@
 *.json
 *.o
 *.log
+*.ppm
 .clang-format
 
 cudaScan
 cudaSaxpy
+render
