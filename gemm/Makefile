@@ -1,4 +1,4 @@
-CXX=g++ -m64 -fPIE
+CXX=g++ -m64 -fPIE -march=native
 CXXFLAGS=-I../common -Iobjs/ -O3 -Wall
 LDLIBS=-lm $(TASKSYS_LIB)
 ISPC=ispc
